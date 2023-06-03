@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="23_pointerArr.c">
+    <ClCompile Include="blackJack.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
