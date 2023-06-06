@@ -6,9 +6,7 @@ int main()
 {
 
 	int N = 0,M = 0;
-	int count = 0,total = 0;
 	int max = 0;
-
 
 	int card[100] = { 0 };
 
@@ -22,36 +20,28 @@ int main()
 
 	for (int i = 0; i < N; i++)
 	{
-		card[i] = rand() % M;
-		printf("%d		", card[i]);
+		scanf_s("%d", &card[i]);
 	}
 
-	while (total < M)
+	for (int i = 0; i < N - 2; i++)
 	{
-		if (count < 3)
+		for (int j = i + 1; j < N - 1; j++)
 		{
-			total += card[rand() % N];
-			count++;
+			for (int k = j + 1; k < N; k++)
+			{
+				if (max < (card[i] + card[j] + card[k]) && (card[i] + card[j] + card[k]) <= M)
+				{
+					max = card[i] + card[j] + card[k];
+					//printf("합계: %d, 뽑은 숫자: %d %d %d\n", max, card[i], card[j], card[k]);
+				}
+
+			}
+
 		}
-		else 
-		{
-			max = total;
-
-			printf("%d \n", max);
-
-		}
-
 
 	}
 
-
-
-
-
-
-
-
-
+	printf("%d\n", max);
 
 
 	return 0;
