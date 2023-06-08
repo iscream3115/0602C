@@ -2,12 +2,13 @@
 #include <stdlib.h>
 #include <time.h>
 
+
+int card[] = { 0 };
+
 int main()
 {
-
 	int N = 0,M = 0;
 	int max = 0;
-
 	int card[100] = { 0 };
 
 	srand((unsigned int)time(NULL));
@@ -22,6 +23,14 @@ int main()
 	{
 		scanf_s("%d", &card[i]);
 	}
+
+	//Àç±ÍÇÔ¼ö·Î
+	//for (int i = 0; i < N; i++)
+	//{
+	//	blackjack(0, i, 1);
+
+	//	if (max == 0) break;
+	//}
 
 	for (int i = 0; i < N - 2; i++)
 	{
@@ -43,6 +52,13 @@ int main()
 
 	printf("%d\n", max);
 
-
 	return 0;
+}
+
+
+void blackjack(int sum, int curr, int count)
+{
+
+	
+
 }
