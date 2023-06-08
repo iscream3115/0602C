@@ -139,7 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="23_structure.cpp" />
+    <ClCompile Include="RPG.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="필기.txt" />
