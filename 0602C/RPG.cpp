@@ -16,6 +16,7 @@ int input();
 void mapDrawer(int* playerX, int* playerY);
 void inGame();
 void UI();
+void fire();
 void youDied();
 void setColor(int colorNum, int backNum);
 
@@ -29,15 +30,15 @@ char map[20][80] =
 	{"111001111111111111111000000000000000000001111111111111000000000000000000T000001"},
 	{"1110011111111111111110000000000000000000011111111111110000000000000000000000001"},
 	{"1110011111111111111111111111111110011111111111111111111111111111111111111111111"},
-	{"1100000111111111111111000000000000000000000001110000000000T00000000000000000011"},
-	{"1100K00111111111111111000000000000000000000001110000000000T00000000000000000011"},
-	{"11000001111110T00000000000000000F0000000000000000000000000T00000000000000B00011"},
-	{"11000001111110011111110000000000P0000000000001110000000000T00000000000000000011"},
-	{"11000T0000T00001111111000000000000000000000001110000000000T00000000000000000011"},
+	{"11000001111111111111110000000000000000000000011100000000TTT00000000000000000011"},
+	{"1100K001111111111111110000000000000000000000011100000000TTT00000000000000000011"},
+	{"11000001111110T00000000000000000F00000000000000000000000TTT00000000000000B00011"},
+	{"11000001111110011111110000000000P00000000000011100000000TTT00000000000000000011"},
+	{"11000T0000T000011111110000000000000000000000011100000000TTT00000000000000000011"},
 	{"111111111111101111111111111111111L111111111111111111111111111111111111001111111"},
 	{"1111111111000011111111110000000000000000011110000000000000000000000000000000001"},
 	{"1111111111000011111111110000000000000000011110000000000000000000000000000000001"},
-	{"11111111110000000000000000000000000000000000D0000000001111111111111111111111111"},
+	{"1111111111000000000000000000000000000000000000000000001111111111111111111111111"},
 	{"1111111111000000000000000001111111000000011110000000001111111111111111111111111"},
 	{"1111111111000000000111111111111111111111111111111111111111111111111111111111111"},
 	{"1111111111111111111111111111111111111111111111111111111111111111111111111111111"},
@@ -91,9 +92,9 @@ struct stBow
 };
 
 stWeapon sword = { "직검",50,40,4};
-stWeapon dagger = { "단검",10,20,1};
-stWeapon greatSword = { "대검",100,70,10};
-stWeapon club = { "나무몽둥이",30,50,3};
+stWeapon dagger = { "단검",30,30,2};
+stWeapon greatSword = { "대검",100,60,10};
+stWeapon club = { "나무몽둥이",40,50,3};
 stBow bow = { "활",50,2,20 };
 
 struct job
@@ -101,6 +102,7 @@ struct job
 	char name[25];
 	int exp;
 	int hp;
+	int maxHp;
 	int stamina;
 	int atk;
 	int ag;
@@ -110,11 +112,11 @@ struct job
 
 };
 
-job warrior = {"전사",4,110,12,13,13,11,&greatSword};
-job knight = { "기사",5,140,10,11,11,10,&sword };
-job thief = { "도적",5,90,9,9,16,10,&dagger };
-job hunter = { "사냥꾼",4,110,11,12,14,11,&dagger,&bow };
-job bum = { "거지",6,110,11,11,11,11,&club };
+job warrior = {"전사",4,110,110,12,13,13,11,&greatSword};
+job knight = { "기사",5,140,140,10,11,11,10,&sword };
+job thief = { "도적",5,90,90,9,9,16,10,&dagger };
+job hunter = { "사냥꾼",4,110,110,11,12,14,11,&dagger,&bow };
+job bum = { "거지",6,110,110,11,11,11,11,&club };
 
 struct player
 {
@@ -140,16 +142,9 @@ enemy mob[4] =
 	{110,50,club,0,0,false},
 	{200,50,greatSword,0,0,false}
 };
-int mobCount = 0;
 
-//사망시 떨구는 소울 위치와 값 정보 
-struct strSoul
-{
-	int x;
-	int y;
-	int exp;
+int lostSouls = 0;
 
-}soul;
 
 void battle(player* fp,int x,int y);
 
@@ -414,7 +409,7 @@ void mapDrawer(int* playerX, int* playerY)
 			}
 			else if (map[i][j] == '1') 
 			{
-				setColor(BLUE, BLACK); // 장애물 색상 설정
+				setColor(WHITE, WHITE); // 장애물 색상 설정
 				gotoxy(j, i);
 				printf("#"); // 장애물 그리기
 			}
@@ -426,13 +421,19 @@ void mapDrawer(int* playerX, int* playerY)
 				printf("T");
 				 // 몬스터 그리기
 			}
-
 			else if (map[i][j] == '.')
 			{
 				setColor(RED, BLACK);
 				gotoxy(j, i);
 
 				printf(".");
+			}
+			else if (map[i][j] == '$')
+			{
+				setColor(BRIGHTGREEN, BLACK);
+				gotoxy(j, i);
+
+				printf("$");
 			}
 			else if (map[i][j] == 'C') 
 			{
@@ -459,7 +460,6 @@ void mapDrawer(int* playerX, int* playerY)
 	setColor(BRIGHTWHITE, BLACK); // 플레이어 색상 설정
 	gotoxy(*playerX, *playerY);
 	printf("@"); // 플레이어 그리기
-	if(mobCount >= 10) mobCount = 0;
 }
 	
 void inGame()
@@ -492,10 +492,9 @@ void inGame()
 			break;
 		}
 
-		if (map[y][x] == 'T')
+		if (map[y][x] == 'T' || map[y][x] == '$')
 		{
 			battle(&p,x,y);
-		
 		}
 
 		mapDrawer(&x, &y); // 맵 그리기
@@ -504,11 +503,15 @@ void inGame()
 
 void UI()
 {
-	gotoxy(0, 20);
 	gotoxy(1, 21);
+	printf("------------------------------------------------------------------------------------\n");
 	printf("이름 : %s    직업: %s  HP :  %d   지구력 :  %d  현재 소울 : %d", p.name, p.playerJob->name, p.playerJob->hp, p.playerJob->stamina,p.playerJob->exp);
 
 
+}
+
+void fire()
+{
 }
 
 void setColor(int colorNum,int backNum)
@@ -527,17 +530,17 @@ void battle(player* fp, int x, int y)
 		srand((unsigned int)time(NULL));
 		int pAtk = fp->playerJob->jobWpn->atk;
 
-		switch (p.playerJob->jobWpn->weight < rand() % 4)
+		switch (rand() % p.playerJob->jobWpn->weight)
 		{
 		case 0:
 
 			printf("플레이어가 %s로 적을 공격!\n", fp->playerJob->jobWpn->name);
 
-			fp->playerJob->stamina -= p.playerJob->jobWpn->weight;
+			fp->playerJob->stamina -= p.playerJob->jobWpn->weight * 3;
 
 			Sleep(500);
 
-			if (fp->playerJob->jobWpn->length > (rand() % 80))
+			if (fp->playerJob->jobWpn->length > (rand() % 70))
 			{
 
 				fEnm.hp -= pAtk;
@@ -592,20 +595,37 @@ void battle(player* fp, int x, int y)
 	if (fp->playerJob->hp <= 0)
 	{
 		printf("------------------------------------\n");
-		printf("			YOU DIED						\n");
+		printf("   YOU DIED								\n");
 		printf("------------------------------------\n");
+		Sleep(1500);
 
-
-		for (int i = 0; i < 8; i++)
-			fEnm.isInit = false;
+		fp->playerJob->hp = fp->playerJob->maxHp;
+		lostSouls = fp->playerJob->exp;
+		fp->playerJob->exp = 0;
+		map[y][x] = '$';
+		system("cls");
 		inGame();
 	}
 	else
 	{
 		printf("전투에서 승리했다!\n");
-		fp->playerJob->exp += fEnm.exp;
-		printf(" %d소울을 얻었다.\n", fEnm.exp);
+
+		if (lostSouls)
+		{
+			fp->playerJob->exp += fEnm.exp + lostSouls;
+			lostSouls = 0;
+			printf("LOST SOULS ACHIEVED \n");
+			printf(" %d소울을 얻었다.\n", fEnm.exp);
+		}
+		
+		else if (!lostSouls)
+		{
+			fp->playerJob->exp += fEnm.exp;
+			printf(" %d소울을 얻었다.\n", fEnm.exp);
+		}
+		Sleep(1000);
 		map[y][x] = '.';
+		system("cls");
 	}
 
 }
