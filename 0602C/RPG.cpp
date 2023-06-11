@@ -83,19 +83,11 @@ struct stWeapon
 	int weight;
 };
 
-struct stBow
-{
-	char name[25];
-	int atk;
-	int weight;
-	int magazine;
-};
 
-stWeapon sword = { "직검",50,40,4};
-stWeapon dagger = { "단검",30,30,2};
-stWeapon greatSword = { "대검",100,60,10};
-stWeapon club = { "나무몽둥이",40,50,3};
-stBow bow = { "활",50,2,20 };
+stWeapon sword = { "직검",50,45,3};
+stWeapon dagger = { "단검",30,35,2};
+stWeapon greatSword = { "대검",100,60,4};
+stWeapon club = { "나무몽둥이",40,55,1};
 
 struct job
 {
@@ -108,20 +100,20 @@ struct job
 	int ag;
 	int def;
 	stWeapon* jobWpn;
-	stBow* jobWpn2;
 
 };
 
 job warrior = {"전사",4,110,110,12,13,13,11,&greatSword};
 job knight = { "기사",5,140,140,10,11,11,10,&sword };
 job thief = { "도적",5,90,90,9,9,16,10,&dagger };
-job hunter = { "사냥꾼",4,110,110,11,12,14,11,&dagger,&bow };
+job hunter = { "사냥꾼",4,110,110,11,12,14,11,&dagger};
 job bum = { "거지",6,110,110,11,11,11,11,&club };
 
 struct player
 {
 	char name[255];
 	job* playerJob;
+	bool isDead;
 
 }p;
 
@@ -238,6 +230,7 @@ void gameStart()
 	}
 
 	printf("당신의 직업은 %s 입니다. \n",p.playerJob->name);
+	p.isDead = false;
 	Sleep(1000);
 	inGame();
 
@@ -426,7 +419,11 @@ void mapDrawer(int* playerX, int* playerY)
 				setColor(RED, BLACK);
 				gotoxy(j, i);
 
-				printf(".");
+				if (p.isDead)
+				{
+					map[i][j] = 'T';
+				}
+				else printf(".");
 			}
 			else if (map[i][j] == '$')
 			{
@@ -457,6 +454,7 @@ void mapDrawer(int* playerX, int* playerY)
 		}
 	}
 
+	p.isDead = false;
 	setColor(BRIGHTWHITE, BLACK); // 플레이어 색상 설정
 	gotoxy(*playerX, *playerY);
 	printf("@"); // 플레이어 그리기
@@ -467,7 +465,7 @@ void inGame()
 	int x = 39; // 플레이어 초기 위치 X 좌표 (중앙)
 	int y = 9;  // 플레이어 초기 위치 Y 좌표 (중앙)
 
-	mapDrawer(&x, &y); // 초기 맵 그리기
+	//mapDrawer(&x, &y); // 초기 맵 그리기
 
 	while (1)
 	{
@@ -494,7 +492,7 @@ void inGame()
 
 		if (map[y][x] == 'T' || map[y][x] == '$')
 		{
-			battle(&p,x,y);
+			battle(&p, x, y);
 		}
 
 		mapDrawer(&x, &y); // 맵 그리기
@@ -505,7 +503,7 @@ void UI()
 {
 	gotoxy(1, 21);
 	printf("------------------------------------------------------------------------------------\n");
-	printf("이름 : %s    직업: %s  HP :  %d   지구력 :  %d  현재 소울 : %d", p.name, p.playerJob->name, p.playerJob->hp, p.playerJob->stamina,p.playerJob->exp);
+	printf("이름 : %s  직업: %s  HP :  %d   현재 무기: %s  현재 소울 : %d", p.name, p.playerJob->name, p.playerJob->hp, p.playerJob->jobWpn->name,p.playerJob->exp);
 
 
 }
@@ -534,13 +532,11 @@ void battle(player* fp, int x, int y)
 		{
 		case 0:
 
-			printf("플레이어가 %s로 적을 공격!\n", fp->playerJob->jobWpn->name);
-
-			fp->playerJob->stamina -= p.playerJob->jobWpn->weight * 3;
+			printf("플레이어가 %s(으)로 적을 공격!\n", fp->playerJob->jobWpn->name);
 
 			Sleep(500);
 
-			if (fp->playerJob->jobWpn->length > (rand() % 70))
+			if (fp->playerJob->jobWpn->length >= (rand() % 60))
 			{
 
 				fEnm.hp -= pAtk;
@@ -556,7 +552,7 @@ void battle(player* fp, int x, int y)
 			int pDef = fp->playerJob->def;
 			int pAg = fp->playerJob->ag;
 
-			printf("상대방이 %s로 공격!\n", fEnm.weapon.name);
+			printf("상대방이 %s(으)로 공격!\n", fEnm.weapon.name);
 			Sleep(500);
 			if ((rand() % 8) + pAg <= 17)
 			{
@@ -568,7 +564,7 @@ void battle(player* fp, int x, int y)
 					int crit = (fp->playerJob->jobWpn->atk) * 3;
 					fEnm.hp -= crit;
 					printf("그 틈에 일격을 가한다. 적에게 %d만큼의 치명타를 날렸다.\n", crit);
-					Sleep(500);
+					Sleep(1000);
 				}
 				else
 				{
@@ -583,19 +579,19 @@ void battle(player* fp, int x, int y)
 				printf("공격을 회피했다.\n");
 				Sleep(500);
 			}
+			break;
 
-			printf("플레이어의 체력: %d\n", fp->playerJob->hp);
-			printf("적의 체력: %d\n\n", fEnm.hp);
-			Sleep(500);
 		}
 
-		fp->playerJob->stamina += fp->playerJob->ag;
+		printf("플레이어의 체력: %d\n", fp->playerJob->hp);
+		printf("적의 체력: %d\n\n", fEnm.hp);
+		Sleep(1000);
 	}
 
 	if (fp->playerJob->hp <= 0)
 	{
 		printf("------------------------------------\n");
-		printf("   YOU DIED								\n");
+		printf("	 YOU DIED				                 \n");
 		printf("------------------------------------\n");
 		Sleep(1500);
 
@@ -604,21 +600,21 @@ void battle(player* fp, int x, int y)
 		fp->playerJob->exp = 0;
 		map[y][x] = '$';
 		system("cls");
+		fp->isDead = true;
 		inGame();
 	}
 	else
 	{
 		printf("전투에서 승리했다!\n");
 
-		if (lostSouls)
+		if (map[y][x] == '$')
 		{
 			fp->playerJob->exp += fEnm.exp + lostSouls;
 			lostSouls = 0;
-			printf("LOST SOULS ACHIEVED \n");
+			printf("****LOST SOULS ACHIEVED**** \n");
 			printf(" %d소울을 얻었다.\n", fEnm.exp);
 		}
-		
-		else if (!lostSouls)
+		else
 		{
 			fp->playerJob->exp += fEnm.exp;
 			printf(" %d소울을 얻었다.\n", fEnm.exp);
@@ -657,6 +653,7 @@ char getKey()
 void youDied()
 {
 
+	
 	
 
 
