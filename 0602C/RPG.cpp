@@ -17,8 +17,9 @@ void mapDrawer(int* playerX, int* playerY);
 void inGame();
 void UI();
 void fire();
-void youDied();
+void doorLock(int x,int y);
 void setColor(int colorNum, int backNum);
+void bossFight();
 
 
 char map[20][80] =
@@ -28,8 +29,8 @@ char map[20][80] =
 	{"100000000000000000000001111111100000000001111111111111000000000000000000T000001"},
 	{"11100111111111111111100111111110000000000111111111111100000000000000000TCT00001"},
 	{"111001111111111111111000000000000000000001111111111111000000000000000000T000001"},
-	{"1110011111111111111110000000000000000000011111111111110000000000000000000000001"},
-	{"1110011111111111111111111111111110011111111111111111111111111111111111111111111"},
+	{"111001111111111111111000000000000T000000011111111111110000000000000000000000001"},
+	{"1110011111111111111111111111111110111111111111111111111111111111111111111111111"},
 	{"11000001111111111111110000000000000000000000011100000000TTT00000000000000000011"},
 	{"1100K001111111111111110000000000000000000000011100000000TTT00000000000000000011"},
 	{"11000001111110T00000000000000000F00000000000000000000000TTT00000000000000B00011"},
@@ -84,10 +85,10 @@ struct stWeapon
 };
 
 
-stWeapon sword = { "직검",50,45,3};
-stWeapon dagger = { "단검",30,35,2};
-stWeapon greatSword = { "대검",100,60,4};
-stWeapon club = { "나무몽둥이",40,55,1};
+stWeapon sword = { "직검",60,45,4};
+stWeapon dagger = { "단검",35,35,3};
+stWeapon greatSword = { "대검",80,60,5};
+stWeapon club = { "나무몽둥이",40,55,2};
 
 struct job
 {
@@ -105,9 +106,8 @@ struct job
 
 job warrior = {"전사",4,110,110,12,13,13,11,&greatSword};
 job knight = { "기사",5,140,140,10,11,11,10,&sword };
-job thief = { "도적",5,90,90,9,9,16,10,&dagger };
-job hunter = { "사냥꾼",4,110,110,11,12,14,11,&dagger};
-job bum = { "거지",6,110,110,11,11,11,11,&club };
+job thief = { "도적",5,90,90,9,9,16,8,&dagger };
+job bum = { "거지",6,110,110,11,11,11,5,&club };
 
 struct player
 {
@@ -124,19 +124,24 @@ struct enemy
 	stWeapon weapon;
 	int x;
 	int y;
-	bool isInit;
 };
 
 enemy mob[4] =
 {
-	{150,50,sword,0,0,false},
-	{90,50,dagger,0,0,false},
-	{110,50,club,0,0,false},
-	{200,50,greatSword,0,0,false}
+	{150,60,sword,0,0},
+	{90,40,dagger,0,0},
+	{110,70,club,0,0},
+	{200,150,greatSword,0,0}
 };
 
 int lostSouls = 0;
-
+int requireSouls = 100;
+int deathSpotX = 0;
+int deathSpotY = 0;
+bool isKey = false;
+bool isUnlocked = false;
+bool isRest = false;
+bool isRespawn = false;
 
 void battle(player* fp,int x,int y);
 
@@ -193,17 +198,16 @@ void title()
 
 void gameStart()
 {
-	clean();
+	system("cls");
 	gotoxy(5, 5);
 	printf("당신의 이름 : ");
 	scanf_s("%s", &p.name,sizeof(p.name));
 
-	clean();
+	system("cls");
 	printf("1. 전사\n");
 	printf("2. 기사\n");
 	printf("3. 도적\n");
-	printf("4. 사냥꾼\n");
-	printf("5. 거지\n");
+	printf("4. 거지\n");
 
 	printf("당신의 직업 (숫자로 선택) : ");
 	int num = 0;
@@ -221,9 +225,6 @@ void gameStart()
 		p.playerJob = &thief;
 		break;
 	case 4:
-		p.playerJob = &hunter;
-		break;
-	case 5:
 		p.playerJob = &bum;
 		break;
 
@@ -242,26 +243,24 @@ void info()
 	
 	gotoxy(0, 0);
 
-	printf("진행 \n");
+	printf("***진행*** \n");
 	printf("화톳불(F)에서 휴식을 취할 수 있다. 체력이 전부 회복되고 가진 소울로 스탯을 찍을 수 있지만\n");
-	printf("보스를 제외한 몬스터들도 다시 소환된다.\n\n");
-	printf("잠긴 문은 반대편에서 열거나 열쇠를 찾으면 열 수 있다.");
-	printf("보스를 잡으면 게임 클리어\n");
+	printf("보스를 제외한 몬스터들도 다시 소환된다.\n");
+	printf("잠긴 문은 열쇠(K)를 찾으면 열 수 있다.\n");
+	printf("보스를 잡으면 게임 클리어\n\n");
 
 
-	printf("전투 \n");
-	printf("회피,방어,공격 같은 행동에 지구력을 소모한다. 지구력이 모두 떨어지면 회복까지 기다려야 한다.\n");
-	printf("회피는 성공시 스테미나를 소모하며 스테미나가 없어도 계속 발동 할 수 있다. 그러나 스테미나 회복에 방해가 될 수 있다.\n\n");
-	printf("회복속도는 민첩성에 따라 달라진다.\n");
+	printf("***전투*** \n");
+	printf("회피는 적응력이 높을 수록 가능성이 높아진다.\n");
 	printf("낮은 확률로 패링에 성공시, 일반 공격의 3배에 달하는 데미지를 입힐 수 있다.\n");
 	printf("사망 시 현재 가지고 있던 모든 소울을 잃으며 상대 몬스터의 자리에 소울이 남아있게 된다. 회수하면 다시 잃어버린 만큼의 소울을 획득한다.\n");
+	printf("반면에 소울을 잃어버린 상태로 다시 죽었을 경우, 소울을 회수하더라도 아무것도 얻을 수 없다.\n\n");
 
 
-	printf("직업 설명\n\n");
+	printf("***직업 설명***\n");
 	printf("전사 - 강력한 공격력을 가지지만 무거운 대검을 들었다\n");
 	printf("기사 - 평균적인 신체력을 가진 자. 직검을 가지고 시작한다.\n");
-	printf("도적 - 짧지만 빠른 공격이 가능한 단검을 들고 있다. 민첩하다.\n");
-	printf("사냥꾼 - 횟수 제한이 있지만 활을 쏠 수 있다.\n");
+	printf("도적 - 짧지만 빠른 공격이 가능한 단검을 들고 있다. 적응력이 높다.\n");
 	printf("거지 - 아무것도 가지지 못한 자. 그러나 모든 부분에 있어서 고른 신체능력을 가지고 있다.\n");
 
 
@@ -331,7 +330,7 @@ void menu(int y)
 			}
 			else if (y == 13)
 			{
-				return;
+				exit(0);
 			}
 
 		}
@@ -342,7 +341,7 @@ void menu(int y)
 
 void clean()
 {
-		for (int i = 0; i < 24; i++) 
+		for (int i = 24; i < 35; i++) 
 		{
 			gotoxy(0, i);
 			printf("                                                                                          ");
@@ -419,7 +418,7 @@ void mapDrawer(int* playerX, int* playerY)
 				setColor(RED, BLACK);
 				gotoxy(j, i);
 
-				if (p.isDead)
+				if (p.isDead || isRespawn)
 				{
 					map[i][j] = 'T';
 				}
@@ -429,7 +428,6 @@ void mapDrawer(int* playerX, int* playerY)
 			{
 				setColor(BRIGHTGREEN, BLACK);
 				gotoxy(j, i);
-
 				printf("$");
 			}
 			else if (map[i][j] == 'C') 
@@ -445,15 +443,28 @@ void mapDrawer(int* playerX, int* playerY)
 				gotoxy(j, i);
 				printf("F"); // 화톳불 그리기
 			}
+			else if (map[i][j] == 'L')
+			{
+				setColor(BRIGHTWHITE, BLACK);
+				gotoxy(j, i);
+				if (isUnlocked) map[i][j] = '0';
+				else printf("L");
+			}
 			else if (map[i][j] == 'B') 
 			{
 				setColor(GREEN, BLACK); // 보스 색상 설정
 				gotoxy(j, i);
 				printf("B"); // 보스 그리기
 			}
+			else if (map[i][j] == 'K')
+			{
+				setColor(SKY, BLACK);
+				gotoxy(j, i);
+				printf("K");
+			}
 		}
 	}
-
+	isRespawn = false;
 	p.isDead = false;
 	setColor(BRIGHTWHITE, BLACK); // 플레이어 색상 설정
 	gotoxy(*playerX, *playerY);
@@ -465,7 +476,7 @@ void inGame()
 	int x = 39; // 플레이어 초기 위치 X 좌표 (중앙)
 	int y = 9;  // 플레이어 초기 위치 Y 좌표 (중앙)
 
-	//mapDrawer(&x, &y); // 초기 맵 그리기
+	mapDrawer(&x, &y); // 초기 맵 그리기
 
 	while (1)
 	{
@@ -477,10 +488,12 @@ void inGame()
 		switch (input)
 		{
 		case UP:
-			if (y > 0 && map[y - 1][x] != '1') y--;
+			if (y > 0 && map[y - 1][x] != '1') 
+				if(map[y - 1][x] != 'L') y--;
 			break;
 		case DOWN:
-			if (y < 19 && map[y + 1][x] != '1') y++;
+			if (y < 19 && map[y + 1][x] != '1')
+				if(map[y + 1][x] != 'L') y++;
 			break;
 		case LEFT:
 			if (x > 0 && map[y][x - 1] != '1') x--;
@@ -494,6 +507,27 @@ void inGame()
 		{
 			battle(&p, x, y);
 		}
+
+		if (map[y - 1][x] == 'L' || map[y + 1][x] == 'L')
+		{
+			doorLock(x, y);
+		}
+
+		if (map[y][x] == 'K')
+		{
+			isKey = true;
+			gotoxy(0, 24);
+			printf("열쇠를 획득했다.\n");
+			map[y][x] = '0';
+		}
+
+		if (map[y][x] == 'F')
+		{
+			isRest = true;
+			fire();
+		}
+
+		if (map[y][x] == 'B') bossFight();
 
 		mapDrawer(&x, &y); // 맵 그리기
 	}
@@ -510,6 +544,77 @@ void UI()
 
 void fire()
 {
+	
+		isRespawn = true;
+		p.playerJob->hp = p.playerJob->maxHp;
+		
+		while (isRest)
+		{
+			gotoxy(0, 24);
+			printf("올릴 능력치를 선택: 체력(x) , 적응력(c), 나가기(v) \n 필요 소울 : %d\n",requireSouls);
+
+			switch (input())
+			{
+				case 'x':
+					if (p.playerJob->exp >= requireSouls)
+					{
+						printf("최대 체력이 10만큼 증가했다.\n");
+						p.playerJob->maxHp += 10;
+						p.playerJob->exp -= requireSouls;
+						requireSouls += 50;
+						Sleep(500);
+						clean();
+					}
+					else
+					{
+						printf("소울이 부족하다.\n");
+						Sleep(500);
+						clean();
+						break;
+					}
+					break;
+				case 'c':
+					if (p.playerJob->exp >= requireSouls)
+					{
+						printf("적응력이 1만큼 증가했다.\n");
+						p.playerJob->ag += 1;
+						p.playerJob->exp -= requireSouls;
+						requireSouls += 50;
+						Sleep(500);
+						clean();
+					}
+					else
+					{
+						printf("소울이 부족하다.\n");
+						Sleep(500);
+						clean();
+						break;
+					}
+					break;
+
+				case 'v':
+					printf("화톳불 앞에서 일어났다.\n");
+					Sleep(500);
+					clean();
+					isRest = false;
+					break;
+			}
+
+		}
+}
+
+void doorLock(int x, int y)
+{
+
+	gotoxy(0, 24);
+
+	if (isKey)
+	{
+		printf("열쇠를 사용했다.");
+		Sleep(500);
+		clean();
+		isUnlocked = true;
+	}
 }
 
 void setColor(int colorNum,int backNum)
@@ -536,7 +641,7 @@ void battle(player* fp, int x, int y)
 
 			Sleep(500);
 
-			if (fp->playerJob->jobWpn->length >= (rand() % 60))
+			if (fp->playerJob->jobWpn->length + fp->playerJob->ag >= (rand() % 50))
 			{
 
 				fEnm.hp -= pAtk;
@@ -554,7 +659,7 @@ void battle(player* fp, int x, int y)
 
 			printf("상대방이 %s(으)로 공격!\n", fEnm.weapon.name);
 			Sleep(500);
-			if ((rand() % 8) + pAg <= 17)
+			if (rand() % pAg < 10)
 			{
 				if (rand() % 6 == 0)
 				{
@@ -591,14 +696,21 @@ void battle(player* fp, int x, int y)
 	if (fp->playerJob->hp <= 0)
 	{
 		printf("------------------------------------\n");
-		printf("	 YOU DIED				                 \n");
+		printf("	   YOU DIED				             \n");
 		printf("------------------------------------\n");
 		Sleep(1500);
 
 		fp->playerJob->hp = fp->playerJob->maxHp;
 		lostSouls = fp->playerJob->exp;
 		fp->playerJob->exp = 0;
+
+		if (deathSpotX > 0 && deathSpotY > 0) map[deathSpotX][deathSpotY] = 'T';
+
+		deathSpotX = y;
+		deathSpotY = x;
+
 		map[y][x] = '$';
+
 		system("cls");
 		fp->isDead = true;
 		inGame();
@@ -650,15 +762,35 @@ char getKey()
 	return key;
 }
 
-void youDied()
+void bossFight()
 {
+	srand((unsigned int)time(NULL));
+	clean();
 
-	
-	
+	gotoxy(0, 24);
+	printf("당신은 소머리 데몬을 만났다.\n");
+	Sleep(1000);
+
+	if (rand() % 3 == 0)
+	{
+		printf("당신은 사투를 벌인 끝에 데몬을 처치할 수 있었다.\n");
+		Sleep(1000);
+		exit(0);
+	}
+	else
+	{
+		printf("당신은 데몬과 열심히 싸웠지만 결국 죽고 말았다...\n");
+		Sleep(1000);
+		p.playerJob->exp = 0;
+		inGame();
+
+	}
+		
+
+
 
 
 }
-
 
 
 
